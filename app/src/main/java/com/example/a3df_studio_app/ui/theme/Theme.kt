@@ -1,58 +1,72 @@
 package com.example.a3df_studio_app.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val LightColors = lightColorScheme(
+    primary = ForgePrimary,
+    onPrimary = Color.White,
+    primaryContainer = ForgePrimaryContainer,
+    onPrimaryContainer = ForgeOnPrimaryContainer,
+    secondary = ForgePrimaryHover,
+    onSecondary = Color.White,
+    secondaryContainer = ForgePrimaryContainer,
+    onSecondaryContainer = ForgeOnPrimaryContainer,
+    tertiary = ForgePrimaryHover,
+    background = ForgeBackground,
+    onBackground = ForgeTextPrimary,
+    surface = ForgeSurface,
+    onSurface = ForgeTextPrimary,
+    surfaceVariant = ForgeSurfaceSecondary,
+    onSurfaceVariant = ForgeTextSecondary,
+    surfaceContainerLowest = ForgeSurface,
+    surfaceContainerLow = ForgeSurface,
+    surfaceContainer = ForgeSurface,
+    surfaceContainerHigh = ForgeSurfaceSecondary,
+    surfaceContainerHighest = ForgeSurfaceSecondary,
+    outline = ForgeBorder,
+    outlineVariant = ForgeBorder,
+    error = ForgeError
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColors = darkColorScheme(
+    primary = ForgePrimaryDark,
+    onPrimary = ForgeBackgroundDark,
+    primaryContainer = ForgePrimaryContainerDark,
+    onPrimaryContainer = ForgeOnPrimaryContainerDark,
+    secondary = ForgePrimaryHoverDark,
+    onSecondary = ForgeBackgroundDark,
+    secondaryContainer = ForgePrimaryContainerDark,
+    onSecondaryContainer = ForgeOnPrimaryContainerDark,
+    tertiary = ForgePrimaryHoverDark,
+    background = ForgeBackgroundDark,
+    onBackground = ForgeTextPrimaryDark,
+    surface = ForgeSurfaceDark,
+    onSurface = ForgeTextPrimaryDark,
+    surfaceVariant = ForgeSurfaceSecondaryDark,
+    onSurfaceVariant = ForgeTextSecondaryDark,
+    surfaceContainerLowest = ForgeBackgroundDark,
+    surfaceContainerLow = ForgeSurfaceDark,
+    surfaceContainer = ForgeSurfaceDark,
+    surfaceContainerHigh = ForgeSurfaceElevatedDark,
+    surfaceContainerHighest = ForgeSurfaceElevatedDark,
+    outline = ForgeBorderDark,
+    outlineVariant = ForgeBorderDark,
+    error = ForgeErrorDark
 )
 
 @Composable
-fun _3dfstudioappTheme(
+fun ForgeStudioTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
+        typography = ForgeTypography,
         content = content
     )
 }
