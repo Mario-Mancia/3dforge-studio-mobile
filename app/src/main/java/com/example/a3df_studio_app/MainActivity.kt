@@ -18,6 +18,7 @@ import com.example.a3df_studio_app.ui.screens.auth.AuthViewModel
 import com.example.a3df_studio_app.ui.screens.carrito.CarritoViewModel
 import com.example.a3df_studio_app.ui.screens.catalogo.CatalogoViewModel
 import com.example.a3df_studio_app.ui.screens.catalogo.DetalleCatalogoViewModel
+import com.example.a3df_studio_app.ui.screens.cotizar.Cotizar3DViewModel
 import com.example.a3df_studio_app.ui.screens.cotizar.CotizarViewModel
 import com.example.a3df_studio_app.ui.screens.cuenta.CuentaViewModel
 import com.example.a3df_studio_app.ui.screens.home.HomeViewModel
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
             cotizacionDetalle = crearViewModel { CotizacionDetalleViewModel(c.getQuoteUseCase, c.respondQuoteUseCase, c.downloadFileUseCase) },
             facturaDetalle = crearViewModel { FacturaDetalleViewModel(c.getInvoiceUseCase) },
             cotizar = crearViewModel { CotizarViewModel(c.getServiciosUseCase, c.requestQuoteUseCase) },
+            cotizar3d = crearViewModel { Cotizar3DViewModel(c.getOpciones3dUseCase, c.estimar3dUseCase, c.solicitar3dUseCase) },
             notificaciones = crearViewModel {
                 NotificacionesViewModel(
                     c.listNotificationsUseCase, c.markNotificationReadUseCase, c.markAllNotificationsReadUseCase, main::fijarNoLeidas

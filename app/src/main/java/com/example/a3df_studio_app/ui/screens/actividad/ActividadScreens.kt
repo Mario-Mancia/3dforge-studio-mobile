@@ -71,6 +71,7 @@ fun ActividadScreen(
     onCotizacion: (Long) -> Unit,
     onFactura: (Long) -> Unit,
     onNuevaCotizacion: () -> Unit,
+    onCotizacionAutomatica: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (usuario == null) {
@@ -103,7 +104,13 @@ fun ActividadScreen(
             ) { encargo -> EncargoCard(encargo, onClick = { onPedido(encargo.id) }) }
 
             PestanaActividad.COTIZACIONES -> Column(modifier = Modifier.fillMaxSize()) {
-                Button(onClick = onNuevaCotizacion, modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) { Text("Solicitar nueva cotización") }
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = onCotizacionAutomatica, modifier = Modifier.fillMaxWidth()) { Text("Cotización automática (impresión 3D)") }
+                    OutlinedButton(onClick = onNuevaCotizacion, modifier = Modifier.fillMaxWidth()) { Text("Solicitar otro servicio") }
+                }
                 ListaPaginada(
                     lista = estado.cotizaciones,
                     vacioTitulo = "Aún no tienes cotizaciones",

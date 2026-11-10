@@ -82,7 +82,7 @@ fun CotizarScreen(
             ForgeCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Cuéntanos qué necesitas (impresión, modelado, diseño, reparación…). Un profesional revisa tu solicitud y te envía una propuesta con precio y plazo. " +
-                        "La cotización automática de impresión 3D está disponible en el sitio web.",
+                        "Si tienes un modelo 3D (STL, OBJ o 3MF), usa la cotización automática desde Actividad > Cotizaciones.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

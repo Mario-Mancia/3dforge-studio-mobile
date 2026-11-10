@@ -8,6 +8,7 @@ import com.example.a3df_studio_app.data.repositories.AccountRepository
 import com.example.a3df_studio_app.data.repositories.AuthRepository
 import com.example.a3df_studio_app.data.repositories.CartRepository
 import com.example.a3df_studio_app.data.repositories.CatalogRepository
+import com.example.a3df_studio_app.data.repositories.Cotizador3dRepository
 import com.example.a3df_studio_app.data.repositories.FileRepository
 import com.example.a3df_studio_app.data.repositories.InvoiceRepository
 import com.example.a3df_studio_app.data.repositories.NotificationRepository
@@ -58,6 +59,7 @@ object AppContainer {
     val supportRepository: SupportRepository by lazy { SupportRepository(apiClient) }
     val accountRepository: AccountRepository by lazy { AccountRepository(apiClient) }
     val fileRepository: FileRepository by lazy { FileRepository(apiClient, context()) }
+    val cotizador3dRepository: Cotizador3dRepository by lazy { Cotizador3dRepository(apiClient, context()) }
 
     // ---- Casos de uso: sesión ----
     val observeAuthStateUseCase by lazy { ObserveAuthStateUseCase(authRepository) }
@@ -110,4 +112,9 @@ object AppContainer {
     val getProfileUseCase by lazy { GetProfileUseCase(accountRepository) }
     val updateProfileUseCase by lazy { UpdateProfileUseCase(accountRepository) }
     val getPanelUseCase by lazy { GetPanelUseCase(accountRepository) }
+
+    // ---- Casos de uso: cotizador automatico 3D ----
+    val getOpciones3dUseCase by lazy { GetOpciones3dUseCase(cotizador3dRepository) }
+    val estimar3dUseCase by lazy { Estimar3dUseCase(cotizador3dRepository) }
+    val solicitar3dUseCase by lazy { Solicitar3dUseCase(cotizador3dRepository) }
 }

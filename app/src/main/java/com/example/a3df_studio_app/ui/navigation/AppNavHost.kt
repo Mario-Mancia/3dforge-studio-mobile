@@ -37,6 +37,7 @@ import com.example.a3df_studio_app.ui.screens.carrito.CarritoScreen
 import com.example.a3df_studio_app.ui.screens.catalogo.CatalogoScreen
 import com.example.a3df_studio_app.ui.screens.catalogo.ProductoDetalleScreen
 import com.example.a3df_studio_app.ui.screens.catalogo.ServicioDetalleScreen
+import com.example.a3df_studio_app.ui.screens.cotizar.Cotizar3DScreen
 import com.example.a3df_studio_app.ui.screens.cotizar.CotizarScreen
 import com.example.a3df_studio_app.ui.screens.cuenta.CuentaScreen
 import com.example.a3df_studio_app.ui.screens.home.HomeScreen
@@ -237,7 +238,8 @@ fun AppNavHost(
                     onPedido = { irA(Screen.Pedido.crear(it)) },
                     onCotizacion = { irA(Screen.Cotizacion.crear(it)) },
                     onFactura = { irA(Screen.Factura.crear(it)) },
-                    onNuevaCotizacion = { irA(Screen.Cotizar.crear()) }
+                    onNuevaCotizacion = { irA(Screen.Cotizar.crear()) },
+                    onCotizacionAutomatica = { irA(Screen.Cotizar3D.route) }
                 )
             }
 
@@ -314,6 +316,23 @@ fun AppNavHost(
                     onCreada = { cotizacionId ->
                         navController.navigate(Screen.Cotizacion.crear(cotizacionId)) {
                             popUpTo(Screen.Cotizar.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.Cotizar3D.route) {
+                Cotizar3DScreen(
+                    viewModel = viewModels.cotizar3d,
+                    onBack = { navController.popBackStack() },
+                    onFormulario = {
+                        navController.navigate(Screen.Cotizar.crear()) {
+                            popUpTo(Screen.Cotizar3D.route) { inclusive = true }
+                        }
+                    },
+                    onCreada = { cotizacionId ->
+                        navController.navigate(Screen.Cotizacion.crear(cotizacionId)) {
+                            popUpTo(Screen.Cotizar3D.route) { inclusive = true }
                         }
                     }
                 )

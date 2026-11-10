@@ -1,11 +1,13 @@
 package com.example.a3df_studio_app.ui.components.topbar
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.a3df_studio_app.R
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,11 +36,10 @@ fun ForgeTopBar(
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onLogoClick) {
-                Icon(
-                    imageVector = Icons.Rounded.ViewInAr,
+                Image(
+                    painter = painterResource(R.drawable.appicon),
                     contentDescription = nombreNegocio,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
         },

@@ -1,5 +1,8 @@
 package com.example.a3df_studio_app.ui.screens.auth
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.a3df_studio_app.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ViewInAr
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,7 +50,11 @@ import com.example.a3df_studio_app.ui.components.topbar.BackTopBar
 @Composable
 private fun EncabezadoAuth(titulo: String, subtitulo: String) {
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Rounded.ViewInAr, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
+        Image(
+            painter = painterResource(R.drawable.appicon),
+            contentDescription = null,
+            modifier = Modifier.size(84.dp)
+        )
         Spacer(Modifier.height(8.dp))
         Text(titulo, style = MaterialTheme.typography.headlineSmall)
         Text(subtitulo, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -25,6 +25,7 @@ sealed class Screen(val route: String) {
     data object Soporte : Screen("soporte")
     data object SoporteNuevo : Screen("soporte-nuevo")
     data object Recuperar : Screen("recuperar")
+    data object Cotizar3D : Screen("cotizar-3d")
 
     data object Login : Screen("login?redirect={redirect}") {
         fun crear(redirect: String? = null): String =

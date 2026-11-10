@@ -8,6 +8,7 @@ import com.example.a3df_studio_app.ui.screens.auth.AuthViewModel
 import com.example.a3df_studio_app.ui.screens.carrito.CarritoViewModel
 import com.example.a3df_studio_app.ui.screens.catalogo.CatalogoViewModel
 import com.example.a3df_studio_app.ui.screens.catalogo.DetalleCatalogoViewModel
+import com.example.a3df_studio_app.ui.screens.cotizar.Cotizar3DViewModel
 import com.example.a3df_studio_app.ui.screens.cotizar.CotizarViewModel
 import com.example.a3df_studio_app.ui.screens.cuenta.CuentaViewModel
 import com.example.a3df_studio_app.ui.screens.home.HomeViewModel
@@ -27,6 +28,7 @@ class ForgeViewModels(
     val cotizacionDetalle: CotizacionDetalleViewModel,
     val facturaDetalle: FacturaDetalleViewModel,
     val cotizar: CotizarViewModel,
+    val cotizar3d: Cotizar3DViewModel,
     val notificaciones: NotificacionesViewModel,
     val soporte: SoporteViewModel,
     val cuenta: CuentaViewModel
