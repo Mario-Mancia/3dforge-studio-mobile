@@ -10,14 +10,19 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.example.a3df_studio_app.data.di.AppContainer
 import com.example.a3df_studio_app.ui.navigation.AppNavHost
+import com.example.a3df_studio_app.ui.screens.actividad.ActividadViewModel
+import com.example.a3df_studio_app.ui.screens.actividad.CotizacionDetalleViewModel
+import com.example.a3df_studio_app.ui.screens.actividad.FacturaDetalleViewModel
+import com.example.a3df_studio_app.ui.screens.actividad.PedidoDetalleViewModel
 import com.example.a3df_studio_app.ui.screens.auth.AuthViewModel
-import com.example.a3df_studio_app.ui.screens.cotizaciones.CotizacionesViewModel
-import com.example.a3df_studio_app.ui.screens.feedback.FeedbackViewModel
+import com.example.a3df_studio_app.ui.screens.carrito.CarritoViewModel
+import com.example.a3df_studio_app.ui.screens.catalogo.CatalogoViewModel
+import com.example.a3df_studio_app.ui.screens.catalogo.DetalleCatalogoViewModel
+import com.example.a3df_studio_app.ui.screens.cotizar.CotizarViewModel
+import com.example.a3df_studio_app.ui.screens.cuenta.CuentaViewModel
 import com.example.a3df_studio_app.ui.screens.home.HomeViewModel
-import com.example.a3df_studio_app.ui.screens.pago.PagoViewModel
-import com.example.a3df_studio_app.ui.screens.pedidos.PedidosViewModel
-import com.example.a3df_studio_app.ui.screens.perfil.PerfilViewModel
-import com.example.a3df_studio_app.ui.screens.productos.ProductosViewModel
+import com.example.a3df_studio_app.ui.screens.seguimiento.NotificacionesViewModel
+import com.example.a3df_studio_app.ui.screens.seguimiento.SoporteViewModel
 import com.example.a3df_studio_app.ui.theme.ForgeStudioTheme
 import com.example.a3df_studio_app.ui.viewmodels.ForgeViewModelFactory
 import com.example.a3df_studio_app.ui.viewmodels.ForgeViewModels
@@ -33,33 +38,41 @@ class MainActivity : ComponentActivity() {
         AppContainer.initialize(applicationContext)
         val c = AppContainer
 
+        val main = crearViewModel {
+            MainViewModel(c.observeAuthStateUseCase, c.restoreSessionUseCase, c.getUnreadCountUseCase, c.getNegocioUseCase, c.observeCartUseCase)
+        }
+
         val viewModels = ForgeViewModels(
-            main = crearViewModel {
-                MainViewModel(c.observeAuthStateUseCase, c.observeClienteProfileUseCase, c.getClienteProfileUseCase)
-            },
-            home = crearViewModel {
-                HomeViewModel(c.getNegocioInfoUseCase, c.getPromocionesActivasUseCase, c.getCategoriasServiciosUseCase, c.getServiciosUseCase)
-            },
-            productos = crearViewModel { ProductosViewModel(c.getProductosUseCase, c.createProductOrderUseCase) },
-            pedidos = crearViewModel { PedidosViewModel(c.getMisEncargosUseCase, c.getMisFacturasUseCase, c.getMisPagosUseCase) },
-            pago = crearViewModel { PagoViewModel(c.processSimulatedPaymentUseCase) },
-            cotizaciones = crearViewModel {
-                CotizacionesViewModel(c.getServiciosUseCase, c.requestQuoteUseCase, c.requestAdvisoryUseCase, c.getMisCotizacionesUseCase)
-            },
-            feedback = crearViewModel {
-                FeedbackViewModel(
-                    c.getServiciosUseCase, c.getMisEncargosUseCase, c.getMisResenasUseCase,
-                    c.getMisSolicitudesSoporteUseCase, c.submitResenaUseCase, c.submitSupportRequestUseCase
-                )
-            },
+            main = main,
             auth = crearViewModel {
                 AuthViewModel(
-                    c.loginWithEmailUseCase, c.registerWithEmailUseCase, c.verifyEmailCodeUseCase,
-                    c.resendVerificationCodeUseCase, c.signInWithGoogleUseCase, c.sendPasswordResetUseCase,
-                    c.getLastEmailUseCase
+                    c.loginUseCase, c.loginWithGoogleUseCase, c.registerUseCase,
+                    c.resendConfirmationUseCase, c.recoverPasswordUseCase, c.getLastEmailUseCase
                 )
             },
-            perfil = crearViewModel { PerfilViewModel(c.getClienteProfileUseCase, c.updateClienteProfileUseCase, c.logoutUseCase) }
+            home = crearViewModel { HomeViewModel(c.getNegocioUseCase, c.getProductosUseCase, c.getServiciosUseCase, c.getPanelUseCase) },
+            catalogo = crearViewModel { CatalogoViewModel(c.getProductosUseCase, c.getServiciosUseCase, c.getCategoriasUseCase, c.addToCartUseCase) },
+            detalleCatalogo = crearViewModel { DetalleCatalogoViewModel(c.getProductoUseCase, c.getServicioUseCase, c.addToCartUseCase) },
+            carrito = crearViewModel {
+                CarritoViewModel(
+                    c.observeCartUseCase, c.updateCartQuantityUseCase, c.removeFromCartUseCase,
+                    c.clearCartUseCase, c.validateCartUseCase, c.confirmPurchaseUseCase
+                )
+            },
+            actividad = crearViewModel { ActividadViewModel(c.listOrdersUseCase, c.listQuotesUseCase, c.listInvoicesUseCase) },
+            pedidoDetalle = crearViewModel { PedidoDetalleViewModel(c.getOrderUseCase, c.cancelOrderUseCase, c.downloadFileUseCase) },
+            cotizacionDetalle = crearViewModel { CotizacionDetalleViewModel(c.getQuoteUseCase, c.respondQuoteUseCase, c.downloadFileUseCase) },
+            facturaDetalle = crearViewModel { FacturaDetalleViewModel(c.getInvoiceUseCase) },
+            cotizar = crearViewModel { CotizarViewModel(c.getServiciosUseCase, c.requestQuoteUseCase) },
+            notificaciones = crearViewModel {
+                NotificacionesViewModel(
+                    c.listNotificationsUseCase, c.markNotificationReadUseCase, c.markAllNotificationsReadUseCase, main::fijarNoLeidas
+                )
+            },
+            soporte = crearViewModel { SoporteViewModel(c.listSupportUseCase, c.getSupportUseCase, c.createSupportUseCase, c.closeSupportUseCase) },
+            cuenta = crearViewModel {
+                CuentaViewModel(c.getProfileUseCase, c.updateProfileUseCase, c.changePasswordUseCase, c.logoutUseCase, c.getNegocioUseCase)
+            }
         )
 
         enableEdgeToEdge()

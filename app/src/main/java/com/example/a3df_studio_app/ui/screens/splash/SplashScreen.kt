@@ -1,6 +1,5 @@
 package com.example.a3df_studio_app.ui.screens.splash
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,38 +17,26 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.a3df_studio_app.domain.models.AuthState
+import com.example.a3df_studio_app.data.config.AppConfig
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(
-    authState: AuthState,
-    onFinish: () -> Unit
-) {
-    LaunchedEffect(authState is AuthState.Loading) {
-        if (authState !is AuthState.Loading) {
-            delay(1200)
-            onFinish()
+fun SplashScreen(listo: Boolean, onListo: () -> Unit) {
+    LaunchedEffect(listo) {
+        if (listo) {
+            delay(500)
+            onListo()
         }
     }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Rounded.ViewInAr,
-            contentDescription = "3DForge Studio",
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(120.dp)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("3DForge Studio", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.onPrimary)
-        Text("Impresión 3D a tu medida", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
-        Spacer(Modifier.height(40.dp))
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+        Icon(Icons.Rounded.ViewInAr, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(AppConfig.NOMBRE_NEGOCIO, style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(24.dp))
+        CircularProgressIndicator()
     }
 }

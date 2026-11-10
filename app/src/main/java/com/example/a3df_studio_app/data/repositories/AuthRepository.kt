@@ -1,126 +1,138 @@
 package com.example.a3df_studio_app.data.repositories
 
 import android.content.Context
+import com.example.a3df_studio_app.data.local.AppPreferences
+import com.example.a3df_studio_app.data.remote.ApiClient
 import com.example.a3df_studio_app.data.remote.auth.GoogleCredentialProvider
-import com.example.a3df_studio_app.data.remote.supabase.Database
-import com.example.a3df_studio_app.data.remote.supabase.supabaseCall
-import com.example.a3df_studio_app.domain.mappers.toAuthUser
-import com.example.a3df_studio_app.domain.models.AppException
-import com.example.a3df_studio_app.domain.models.AuthRequiredException
+import com.example.a3df_studio_app.data.remote.dto.CambiarPasswordRequest
+import com.example.a3df_studio_app.data.remote.dto.CorreoRequest
+import com.example.a3df_studio_app.data.remote.dto.GoogleRequest
+import com.example.a3df_studio_app.data.remote.dto.LoginRequest
+import com.example.a3df_studio_app.data.remote.dto.MensajeDto
+import com.example.a3df_studio_app.data.remote.dto.OkDto
+import com.example.a3df_studio_app.data.remote.dto.RegistroRequest
+import com.example.a3df_studio_app.data.remote.dto.SesionDto
+import com.example.a3df_studio_app.domain.mappers.aSesionLocal
+import com.example.a3df_studio_app.domain.mappers.aUsuario
 import com.example.a3df_studio_app.domain.models.AuthState
 import com.example.a3df_studio_app.domain.models.AuthUser
-import com.example.a3df_studio_app.domain.models.EmailNotVerifiedException
-import com.example.a3df_studio_app.domain.models.NotConfiguredException
-import com.example.a3df_studio_app.domain.models.SignUpResult
-import io.github.jan.supabase.auth.OtpType
-import io.github.jan.supabase.auth.exception.AuthErrorCode
-import io.github.jan.supabase.auth.exception.AuthRestException
-import io.github.jan.supabase.auth.providers.Google
-import io.github.jan.supabase.auth.providers.builtin.Email
-import io.github.jan.supabase.auth.providers.builtin.IDToken
-import io.github.jan.supabase.auth.status.SessionStatus
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import com.example.a3df_studio_app.domain.models.SolicitudRegistro
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 
 class AuthRepository(
-    private val googleCredentialProvider: GoogleCredentialProvider
+    private val api: ApiClient,
+    private val preferencias: AppPreferences,
+    private val google: GoogleCredentialProvider
 ) {
+    private val _estado = MutableStateFlow<AuthState>(AuthState.Cargando)
+    val estado: StateFlow<AuthState> = _estado.asStateFlow()
 
-    val authState: Flow<AuthState> = flow {
-        if (!Database.isConfigured) {
-            emit(AuthState.NotConfigured)
-            return@flow
+    val usuarioActual: AuthUser?
+        get() = (_estado.value as? AuthState.ConSesion)?.usuario
+
+    /** Restaura la sesión guardada y la renueva si le quedan pocos días. */
+    suspend fun restaurar() {
+        val token = preferencias.leerToken()
+        val sesion = preferencias.leerSesion()
+        if (token == null || sesion == null) {
+            api.token = null
+            _estado.value = AuthState.SinSesion
+            return
         }
-        emitAll(Database.auth.sessionStatus.map { it.toAuthState() })
-    }.distinctUntilChanged()
-
-    fun usuarioActual(): AuthUser? {
-        if (!Database.isConfigured) return null
-        return Database.auth.currentUserOrNull()?.toAuthUser()
-    }
-
-    fun requireUser(): AuthUser {
-        if (!Database.isConfigured) throw NotConfiguredException()
-        return usuarioActual() ?: throw AuthRequiredException()
-    }
-
-    suspend fun registrar(
-        correo: String,
-        clave: String,
-        nombres: String,
-        apellidos: String
-    ): SignUpResult = supabaseCall {
-        val resultado = Database.auth.signUpWith(Email) {
-            email = correo
-            password = clave
-            data = buildJsonObject {
-                put("nombres", nombres)
-                put("apellidos", apellidos)
-                put("full_name", "$nombres $apellidos")
+        api.token = token
+        _estado.value = AuthState.ConSesion(sesion.aUsuario())
+        if (debeRenovar(sesion.expiraEn)) {
+            try {
+                refrescar()
+            } catch (e: Exception) {
+                // Si el token ya no sirve, ApiClient.alExpirar cierra la sesión local.
             }
         }
-        val sesion = Database.auth.currentUserOrNull()
-        if (resultado == null && sesion != null) {
-            SignUpResult.SignedIn(sesion.toAuthUser())
-        } else {
-            SignUpResult.VerificationRequired(correo)
-        }
     }
 
-    suspend fun verificarCodigoRegistro(correo: String, codigo: String): AuthUser = supabaseCall {
-        Database.auth.verifyEmailOtp(type = OtpType.Email.SIGNUP, email = correo, token = codigo)
-        Database.auth.currentUserOrNull()?.toAuthUser()
-            ?: throw AppException("No se pudo iniciar la sesión después de verificar el correo.")
+    private fun debeRenovar(expiraEn: String?): Boolean {
+        if (expiraEn.isNullOrBlank()) return false
+        return runCatching {
+            val limite = OffsetDateTime.parse(expiraEn).toInstant()
+            Instant.now().plus(7, ChronoUnit.DAYS).isAfter(limite)
+        }.getOrDefault(false)
     }
 
-    suspend fun reenviarCodigoRegistro(correo: String) = supabaseCall {
-        Database.auth.resendEmail(OtpType.Email.SIGNUP, correo)
+    private suspend fun refrescar() {
+        val dto: SesionDto = api.postVacio("auth/refrescar/")
+        guardar(dto)
     }
 
-    suspend fun iniciarSesion(correo: String, clave: String): AuthUser = supabaseCall {
+    private suspend fun guardar(dto: SesionDto): AuthUser {
+        api.token = dto.token
+        val sesion = dto.aSesionLocal()
+        preferencias.guardarSesion(dto.token, sesion)
+        preferencias.guardarUltimoCorreo(dto.usuario.correo)
+        val usuario = sesion.aUsuario()
+        _estado.value = AuthState.ConSesion(usuario)
+        return usuario
+    }
+
+    suspend fun ultimoCorreo(): String = preferencias.leerUltimoCorreo().orEmpty()
+
+    suspend fun login(correo: String, clave: String): AuthUser {
+        val dto: SesionDto = api.post("auth/login/", LoginRequest(correo.trim().lowercase(), clave))
+        return guardar(dto)
+    }
+
+    suspend fun loginConGoogle(contexto: Context): AuthUser {
+        val credencial = google.requestIdToken(contexto)
+        val dto: SesionDto = api.post("auth/google/", GoogleRequest(credencial.idToken, credencial.rawNonce))
+        return guardar(dto)
+    }
+
+    suspend fun registrar(datos: SolicitudRegistro): String {
+        val respuesta: MensajeDto = api.post(
+            "auth/registro/",
+            RegistroRequest(
+                nombres = datos.nombres.trim(),
+                apellidos = datos.apellidos.trim(),
+                correo = datos.correo.trim().lowercase(),
+                telefono = datos.telefono.trim(),
+                password = datos.password
+            )
+        )
+        preferencias.guardarUltimoCorreo(datos.correo.trim().lowercase())
+        return respuesta.mensaje
+    }
+
+    suspend fun reenviarConfirmacion(correo: String): String {
+        val respuesta: MensajeDto = api.post("auth/reenviar-confirmacion/", CorreoRequest(correo.trim().lowercase()))
+        return respuesta.mensaje
+    }
+
+    suspend fun recuperarPassword(correo: String): String {
+        val respuesta: MensajeDto = api.post("auth/recuperar/", CorreoRequest(correo.trim().lowercase()))
+        return respuesta.mensaje
+    }
+
+    suspend fun cambiarPassword(actual: String, nueva: String): String {
+        val respuesta: MensajeDto = api.post("auth/cambiar-password/", CambiarPasswordRequest(actual, nueva))
+        return respuesta.mensaje
+    }
+
+    suspend fun cerrarSesion() {
         try {
-            Database.auth.signInWith(Email) {
-                email = correo
-                password = clave
-            }
-        } catch (e: AuthRestException) {
-            if (e.errorCode == AuthErrorCode.EmailNotConfirmed) throw EmailNotVerifiedException(correo)
-            throw e
+            val ignorado: OkDto = api.postVacio("auth/logout/")
+        } catch (e: Exception) {
+            // El cierre remoto es opcional: siempre se limpia la sesión local.
         }
-        Database.auth.currentUserOrNull()?.toAuthUser()
-            ?: throw AppException("No se pudo recuperar la sesión del usuario.")
+        cerrarLocal()
     }
 
-    suspend fun iniciarSesionConGoogle(activityContext: Context): AuthUser = supabaseCall {
-        val token = googleCredentialProvider.requestIdToken(activityContext)
-        Database.auth.signInWith(IDToken) {
-            idToken = token.idToken
-            provider = Google
-            nonce = token.rawNonce
-        }
-        Database.auth.currentUserOrNull()?.toAuthUser()
-            ?: throw AppException("No se pudo recuperar la sesión de Google.")
-    }
-
-    suspend fun enviarRecuperacionClave(correo: String) = supabaseCall {
-        Database.auth.resetPasswordForEmail(correo)
-    }
-
-    suspend fun cerrarSesion() = supabaseCall {
-        Database.auth.signOut()
-    }
-
-    private fun SessionStatus.toAuthState(): AuthState = when (this) {
-        is SessionStatus.Authenticated ->
-            session.user?.let { AuthState.Authenticated(it.toAuthUser()) } ?: AuthState.Loading
-        is SessionStatus.NotAuthenticated -> AuthState.Guest
-        is SessionStatus.Initializing -> AuthState.Loading
-        is SessionStatus.RefreshFailure ->
-            Database.auth.currentUserOrNull()?.let { AuthState.Authenticated(it.toAuthUser()) } ?: AuthState.Guest
+    suspend fun cerrarLocal() {
+        api.token = null
+        preferencias.limpiarSesion()
+        _estado.value = AuthState.SinSesion
     }
 }

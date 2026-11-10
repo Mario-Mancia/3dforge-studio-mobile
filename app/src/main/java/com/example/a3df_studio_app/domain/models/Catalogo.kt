@@ -1,50 +1,68 @@
 package com.example.a3df_studio_app.domain.models
 
-import java.time.OffsetDateTime
+import java.math.BigDecimal
 
 data class Producto(
     val id: Long,
     val sku: String,
     val nombre: String,
-    val descripcion: String?,
-    val precio: Double,
+    val descripcion: String,
+    val precio: BigDecimal,
     val stock: Int,
+    val stockMinimo: Int,
+    val disponibilidad: Disponibilidad,
     val imagenUrl: String?
 ) {
-    val disponible: Boolean
-        get() = stock > 0
+    val agotado: Boolean get() = disponibilidad == Disponibilidad.AGOTADO
 }
 
 data class CategoriaServicio(
     val id: Long,
     val nombre: String,
-    val descripcion: String?
+    val descripcion: String
 )
 
 data class Servicio(
     val id: Long,
-    val idCategoria: Long,
-    val categoriaNombre: String?,
+    val categoriaId: Long,
+    val categoria: String,
     val nombre: String,
     val descripcion: String,
-    val precioBase: Double,
+    val precioBase: BigDecimal,
     val requiereArchivo: Boolean
 )
 
-data class Promocion(
-    val id: Long,
+data class ItemCarrito(
+    val productoId: Long,
     val nombre: String,
-    val descripcion: String?,
-    val tipoDescuento: TipoDescuento,
-    val valorDescuento: Double,
-    val fechaFin: OffsetDateTime?
+    val precio: BigDecimal,
+    val imagenUrl: String?,
+    val stock: Int,
+    val cantidad: Int
+) {
+    val subtotal: BigDecimal get() = precio.multiply(BigDecimal(cantidad))
+}
+
+data class TotalesCarrito(
+    val subtotal: BigDecimal,
+    val impuesto: BigDecimal,
+    val total: BigDecimal
 )
 
-data class NegocioInfo(
+data class LineaValidada(
+    val productoId: Long,
     val nombre: String,
-    val correo: String?,
-    val telefono: String?,
-    val direccion: String?,
-    val sitioWeb: String?,
-    val logoUrl: String?
+    val cantidad: Int,
+    val disponible: Boolean,
+    val stock: Int,
+    val precio: BigDecimal?
+)
+
+data class CarritoValidado(
+    val lineas: List<LineaValidada>,
+    val subtotal: BigDecimal,
+    val descuento: BigDecimal,
+    val impuesto: BigDecimal,
+    val total: BigDecimal,
+    val hayProblemas: Boolean
 )

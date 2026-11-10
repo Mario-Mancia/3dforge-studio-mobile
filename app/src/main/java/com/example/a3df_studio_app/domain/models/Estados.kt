@@ -1,68 +1,58 @@
 package com.example.a3df_studio_app.domain.models
 
-enum class TipoCliente(val etiqueta: String) {
-    PERSONA("Persona"),
-    EMPRESA("Empresa");
-
-    companion object {
-        fun desde(valor: String?): TipoCliente = entries.firstOrNull { it.name == valor } ?: PERSONA
-    }
-}
-
 enum class EstadoCotizacion(val etiqueta: String) {
+    SOLICITADA("Solicitada"),
     BORRADOR("En revisión"),
     ENVIADA("Enviada"),
     ACEPTADA("Aceptada"),
     RECHAZADA("Rechazada"),
     VENCIDA("Vencida"),
-    CANCELADA("Cancelada");
+    CANCELADA("Cancelada"),
+    DESCONOCIDO("Desconocido");
 
     companion object {
-        fun desde(valor: String?): EstadoCotizacion = entries.firstOrNull { it.name == valor } ?: BORRADOR
+        fun desde(valor: String?): EstadoCotizacion = entries.firstOrNull { it.name == valor } ?: DESCONOCIDO
     }
 }
 
-enum class EstadoEncargo(val etiqueta: String, val paso: Int) {
-    PENDIENTE("Pendiente", 0),
-    EN_REVISION("En revisión", 1),
-    APROBADO("Aprobado", 2),
-    EN_PRODUCCION("En producción", 3),
-    EN_ESPERA("En espera", 3),
-    FINALIZADO("Finalizado", 4),
-    ENTREGADO("Entregado", 5),
-    CANCELADO("Cancelado", -1);
-
-    val finalizado: Boolean
-        get() = this == ENTREGADO || this == CANCELADO
-
-    companion object {
-        const val TOTAL_PASOS = 5
-
-        fun desde(valor: String?): EstadoEncargo = entries.firstOrNull { it.name == valor } ?: PENDIENTE
-    }
-}
-
-enum class EstadoFactura(val etiqueta: String, val pagable: Boolean) {
-    PENDIENTE("Pendiente", true),
-    PARCIALMENTE_PAGADA("Pago parcial", true),
-    PAGADA("Pagada", false),
-    ANULADA("Anulada", false),
-    VENCIDA("Vencida", true);
-
-    companion object {
-        fun desde(valor: String?): EstadoFactura = entries.firstOrNull { it.name == valor } ?: PENDIENTE
-    }
-}
-
-enum class EstadoPago(val etiqueta: String) {
+enum class EstadoEncargo(val etiqueta: String) {
     PENDIENTE("Pendiente"),
-    CONFIRMADO("Confirmado"),
-    RECHAZADO("Rechazado"),
-    REEMBOLSADO("Reembolsado"),
-    CANCELADO("Cancelado");
+    EN_REVISION("En revisión"),
+    APROBADO("Aprobado"),
+    EN_PRODUCCION("En producción"),
+    EN_ESPERA("En espera"),
+    FINALIZADO("Finalizado"),
+    ENTREGADO("Entregado"),
+    CANCELADO("Cancelado"),
+    DESCONOCIDO("Desconocido");
 
     companion object {
-        fun desde(valor: String?): EstadoPago = entries.firstOrNull { it.name == valor } ?: PENDIENTE
+        fun desde(valor: String?): EstadoEncargo = entries.firstOrNull { it.name == valor } ?: DESCONOCIDO
+    }
+}
+
+enum class EstadoFactura(val etiqueta: String) {
+    PENDIENTE("Pendiente"),
+    PARCIALMENTE_PAGADA("Parcialmente pagada"),
+    PAGADA("Pagada"),
+    ANULADA("Anulada"),
+    VENCIDA("Vencida"),
+    DESCONOCIDO("Desconocido");
+
+    companion object {
+        fun desde(valor: String?): EstadoFactura = entries.firstOrNull { it.name == valor } ?: DESCONOCIDO
+    }
+}
+
+enum class EstadoSoporte(val etiqueta: String) {
+    ABIERTA("Abierta"),
+    EN_PROCESO("En proceso"),
+    RESUELTA("Resuelta"),
+    CERRADA("Cerrada"),
+    DESCONOCIDO("Desconocido");
+
+    companion object {
+        fun desde(valor: String?): EstadoSoporte = entries.firstOrNull { it.name == valor } ?: DESCONOCIDO
     }
 }
 
@@ -77,38 +67,39 @@ enum class PrioridadSoporte(val etiqueta: String) {
     }
 }
 
-enum class EstadoSoporte(val etiqueta: String) {
-    ABIERTA("Abierta"),
-    EN_PROCESO("En proceso"),
-    RESUELTA("Resuelta"),
-    CERRADA("Cerrada");
+enum class TipoNotificacion {
+    COTIZACION, ENCARGO, FACTURA, SOPORTE, OTRO;
 
     companion object {
-        fun desde(valor: String?): EstadoSoporte = entries.firstOrNull { it.name == valor } ?: ABIERTA
+        fun desde(valor: String?): TipoNotificacion = when (valor?.lowercase()) {
+            "cotizacion" -> COTIZACION
+            "encargo" -> ENCARGO
+            "factura" -> FACTURA
+            "soporte" -> SOPORTE
+            else -> OTRO
+        }
     }
 }
 
-enum class TipoInteraccion {
-    LLAMADA,
-    CORREO,
-    ASESORIA,
-    REUNION,
-    SEGUIMIENTO,
-    RECLAMO
-}
-
-enum class TipoDescuento {
-    PORCENTAJE,
-    MONTO_FIJO;
+enum class Disponibilidad(val etiqueta: String) {
+    DISPONIBLE("Disponible"),
+    ULTIMAS("Últimas unidades"),
+    AGOTADO("Agotado");
 
     companion object {
-        fun desde(valor: String?): TipoDescuento = entries.firstOrNull { it.name == valor } ?: PORCENTAJE
+        fun desde(valor: String?): Disponibilidad = when (valor) {
+            "agotado" -> AGOTADO
+            "ultimas" -> ULTIMAS
+            else -> DISPONIBLE
+        }
     }
 }
 
-enum class MarcaTarjeta(val etiqueta: String) {
-    VISA("Visa"),
-    MASTERCARD("Mastercard"),
-    AMEX("American Express"),
-    DESCONOCIDA("Tarjeta")
+enum class TipoCliente(val etiqueta: String) {
+    PERSONA("Persona"),
+    EMPRESA("Empresa");
+
+    companion object {
+        fun desde(valor: String?): TipoCliente = if (valor == "EMPRESA") EMPRESA else PERSONA
+    }
 }

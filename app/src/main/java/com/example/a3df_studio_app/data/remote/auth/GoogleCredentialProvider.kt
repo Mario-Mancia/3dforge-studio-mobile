@@ -8,8 +8,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.example.a3df_studio_app.data.config.AppConfig
-import com.example.a3df_studio_app.domain.models.AppException
-import com.example.a3df_studio_app.domain.models.GoogleSignInCancelledException
+import com.example.a3df_studio_app.domain.models.AppError
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.security.MessageDigest
@@ -24,7 +23,7 @@ class GoogleCredentialProvider {
 
     suspend fun requestIdToken(activityContext: Context): GoogleToken {
         if (!AppConfig.isGoogleConfigured) {
-            throw AppException("Configura GOOGLE_WEB_CLIENT_ID en local.properties para usar Google.")
+            throw AppError.Local("Falta configurar GOOGLE_WEB_CLIENT_ID en local.properties para usar Google.")
         }
 
         val rawNonce = UUID.randomUUID().toString()
@@ -46,11 +45,11 @@ class GoogleCredentialProvider {
         val response = try {
             CredentialManager.create(activityContext).getCredential(activityContext, request)
         } catch (e: GetCredentialCancellationException) {
-            throw GoogleSignInCancelledException()
+            throw AppError.Cancelado
         } catch (e: NoCredentialException) {
-            throw AppException("No se encontró una cuenta de Google en este dispositivo.", e)
+            throw AppError.Local("No se encontró una cuenta de Google en este dispositivo.")
         } catch (e: GetCredentialException) {
-            throw AppException("No se pudo iniciar sesión con Google: ${e.message}", e)
+            throw AppError.Local("No se pudo iniciar sesión con Google: ${e.message}")
         }
 
         val credential = response.credential
@@ -60,6 +59,6 @@ class GoogleCredentialProvider {
             val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
             return GoogleToken(idToken = googleCredential.idToken, rawNonce = rawNonce)
         }
-        throw AppException("La credencial recibida de Google no es válida.")
+        throw AppError.Local("La credencial recibida de Google no es válida.")
     }
 }

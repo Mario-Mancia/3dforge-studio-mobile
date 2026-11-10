@@ -1,233 +1,387 @@
 package com.example.a3df_studio_app.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.example.a3df_studio_app.data.config.AppConfig
+import com.example.a3df_studio_app.domain.models.AuthState
 import com.example.a3df_studio_app.ui.components.bottombar.ForgeBottomBar
-import com.example.a3df_studio_app.ui.components.topbar.BackTopBar
+import com.example.a3df_studio_app.ui.components.dialog.AuthGateDialog
 import com.example.a3df_studio_app.ui.components.topbar.ForgeTopBar
+import com.example.a3df_studio_app.ui.screens.actividad.ActividadScreen
+import com.example.a3df_studio_app.ui.screens.actividad.CotizacionDetalleScreen
+import com.example.a3df_studio_app.ui.screens.actividad.FacturaDetalleScreen
+import com.example.a3df_studio_app.ui.screens.actividad.PedidoDetalleScreen
 import com.example.a3df_studio_app.ui.screens.auth.LoginScreen
+import com.example.a3df_studio_app.ui.screens.auth.RecuperarScreen
 import com.example.a3df_studio_app.ui.screens.auth.RegisterScreen
-import com.example.a3df_studio_app.ui.screens.auth.VerifyEmailScreen
-import com.example.a3df_studio_app.ui.screens.cotizaciones.CotizacionesScreen
-import com.example.a3df_studio_app.ui.screens.feedback.FeedbackScreen
+import com.example.a3df_studio_app.ui.screens.carrito.CarritoScreen
+import com.example.a3df_studio_app.ui.screens.catalogo.CatalogoScreen
+import com.example.a3df_studio_app.ui.screens.catalogo.ProductoDetalleScreen
+import com.example.a3df_studio_app.ui.screens.catalogo.ServicioDetalleScreen
+import com.example.a3df_studio_app.ui.screens.cotizar.CotizarScreen
+import com.example.a3df_studio_app.ui.screens.cuenta.CuentaScreen
 import com.example.a3df_studio_app.ui.screens.home.HomeScreen
-import com.example.a3df_studio_app.ui.screens.pago.PagoScreen
-import com.example.a3df_studio_app.ui.screens.pedidos.EncargoDetalleScreen
-import com.example.a3df_studio_app.ui.screens.pedidos.PedidosScreen
-import com.example.a3df_studio_app.ui.screens.perfil.PerfilScreen
-import com.example.a3df_studio_app.ui.screens.productos.ProductosScreen
+import com.example.a3df_studio_app.ui.screens.seguimiento.NotificacionesScreen
+import com.example.a3df_studio_app.ui.screens.seguimiento.SoporteDetalleScreen
+import com.example.a3df_studio_app.ui.screens.seguimiento.SoporteNuevoScreen
+import com.example.a3df_studio_app.ui.screens.seguimiento.SoporteScreen
+import com.example.a3df_studio_app.ui.screens.seguimiento.rutaDeNotificacion
 import com.example.a3df_studio_app.ui.screens.splash.SplashScreen
 import com.example.a3df_studio_app.ui.viewmodels.ForgeViewModels
 
-private val rutasPrincipales = bottomItems.map { it.screen.route }.toSet()
-
-private val titulos = mapOf(
-    Screen.Login.route to "Iniciar sesión",
-    Screen.Registro.route to "Registro",
-    Screen.Verificar.route to "Verificación",
-    Screen.Perfil.route to "Mi perfil",
-    Screen.Pago.route to "Pago en línea",
-    Screen.EncargoDetalle.route to "Detalle del encargo"
+private val argumentoId = listOf(navArgument("id") { type = NavType.LongType })
+private val argumentoRedirect = listOf(
+    navArgument("redirect") {
+        type = NavType.StringType
+        nullable = true
+        defaultValue = null
+    }
 )
+
+private fun NavBackStackEntry.id(): Long = arguments?.getLong("id") ?: 0L
+
+private fun NavBackStackEntry.redirect(): String? = arguments?.getString("redirect")?.let { Uri.decode(it) }
+
+/** Acción que requiere sesión: [motivo] se muestra al usuario y [redirect] es la ruta a la que volver después. */
+private data class AccionConSesion(val motivo: String, val redirect: String)
 
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     viewModels: ForgeViewModels
 ) {
-    val mainUiState by viewModels.main.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val entrada by navController.currentBackStackEntryAsState()
-    val rutaActual = entrada?.destination?.route
-    var pestanaCotizacion by rememberSaveable { mutableIntStateOf(0) }
+    val authState by viewModels.main.authState.collectAsStateWithLifecycle()
+    val usuario = (authState as? AuthState.ConSesion)?.usuario
+    val negocio by viewModels.main.negocio.collectAsStateWithLifecycle()
+    val noLeidas by viewModels.main.noLeidas.collectAsStateWithLifecycle()
+    val cantidadCarrito by viewModels.main.cantidadCarrito.collectAsStateWithLifecycle()
+    val authUi by viewModels.auth.estado.collectAsStateWithLifecycle()
+    val entradaActual by navController.currentBackStackEntryAsState()
+    val rutaActual = entradaActual?.destination?.route
+    val contexto = LocalContext.current
+    var gate by remember { mutableStateOf<AccionConSesion?>(null) }
 
-    val irA: (Screen) -> Unit = { destino ->
-        navController.navigate(destino.route) {
+    // Al cerrar sesión se limpian los datos del usuario que están en memoria.
+    LaunchedEffect(authState) {
+        if (authState is AuthState.SinSesion) {
+            viewModels.actividad.limpiar()
+            viewModels.cuenta.limpiar()
+            viewModels.soporte.limpiar()
+            viewModels.notificaciones.limpiar()
+        }
+    }
+
+    // Google desde el diálogo de "necesitas iniciar sesión".
+    LaunchedEffect(authUi.exito, gate) {
+        val pendiente = gate
+        if (authUi.exito && pendiente != null) {
+            viewModels.auth.consumirExito()
+            gate = null
+            navController.navigate(pendiente.redirect) { launchSingleTop = true }
+        }
+    }
+
+    fun irA(ruta: String) {
+        navController.navigate(ruta) { launchSingleTop = true }
+    }
+
+    fun irAPrincipal(pantalla: Screen) {
+        navController.navigate(pantalla.route) {
             popUpTo(Screen.Home.route) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
     }
-    val requerirLogin: () -> Unit = { navController.navigate(Screen.Login.route) { launchSingleTop = true } }
-    val salirDeAuth: () -> Unit = {
-        if (!navController.popBackStack(Screen.Login.route, inclusive = true) &&
-            !navController.popBackStack(Screen.Registro.route, inclusive = true)
-        ) {
-            irA(Screen.Home)
+
+    fun requiereSesion(motivo: String, redirect: String) {
+        if (usuario != null) irA(redirect) else gate = AccionConSesion(motivo, redirect)
+    }
+
+    fun volverAlLogin(redirect: String?) {
+        if (redirect != null) {
+            navController.navigate(redirect) {
+                popUpTo(Screen.Home.route)
+                launchSingleTop = true
+            }
+        } else {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 
+    gate?.let { accion ->
+        AuthGateDialog(
+            motivo = accion.motivo,
+            googleDisponible = AppConfig.isGoogleConfigured,
+            cargandoGoogle = authUi.cargandoGoogle,
+            error = authUi.error,
+            onLogin = {
+                gate = null
+                irA(Screen.Login.crear(accion.redirect))
+            },
+            onRegistro = {
+                gate = null
+                irA(Screen.Registro.crear(accion.redirect))
+            },
+            onGoogle = { viewModels.auth.continuarConGoogle(contexto) },
+            onCerrar = {
+                gate = null
+                viewModels.auth.limpiar()
+            }
+        )
+    }
+
+    val esPrincipal = rutaActual in rutasPrincipales
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            when (rutaActual) {
-                null, Screen.Splash.route -> Unit
-                in rutasPrincipales -> ForgeTopBar(
-                    usuario = mainUiState.usuario,
-                    avatarUrl = mainUiState.avatarUrl,
-                    onLogoClick = { irA(Screen.Home) },
-                    onAvatarClick = { if (mainUiState.isLoggedIn) navController.navigate(Screen.Perfil.route) else requerirLogin() }
+            if (esPrincipal) {
+                ForgeTopBar(
+                    nombreNegocio = negocio?.nombre ?: AppConfig.NOMBRE_NEGOCIO,
+                    usuario = usuario,
+                    noLeidas = noLeidas,
+                    onLogoClick = { irAPrincipal(Screen.Home) },
+                    onNotificaciones = { irA(Screen.Notificaciones.route) },
+                    onAvatarClick = { irAPrincipal(Screen.Cuenta) }
                 )
-                else -> BackTopBar(titulos[rutaActual].orEmpty()) { navController.popBackStack() }
             }
         },
         bottomBar = {
-            if (rutaActual in rutasPrincipales) ForgeBottomBar(rutaActual, irA)
+            if (esPrincipal) {
+                ForgeBottomBar(rutaActual = rutaActual, cantidadCarrito = cantidadCarrito, onNavigate = { irAPrincipal(it) })
+            }
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            NavHost(navController = navController, startDestination = Screen.Splash.route) {
-
-                composable(Screen.Splash.route) {
-                    SplashScreen(authState = mainUiState.authState) {
-                        navController.navigate(Screen.Home.route) { popUpTo(0) { inclusive = true } }
-                    }
-                }
-
-                composable(Screen.Home.route) {
-                    HomeScreen(
-                        homeViewModel = viewModels.home,
-                        usuario = mainUiState.usuario,
-                        onCotizarServicio = { servicio ->
-                            viewModels.cotizaciones.agregarServicio(servicio)
-                            pestanaCotizacion = 0
-                            irA(Screen.Cotizaciones)
-                        },
-                        onAsesoria = {
-                            pestanaCotizacion = 1
-                            irA(Screen.Cotizaciones)
-                        },
-                        onVerProductos = { irA(Screen.Productos) }
-                    )
-                }
-
-                composable(Screen.Productos.route) {
-                    ProductosScreen(
-                        productosViewModel = viewModels.productos,
-                        isLoggedIn = mainUiState.isLoggedIn,
-                        snackbarHostState = snackbarHostState,
-                        onRequireLogin = requerirLogin,
-                        onPagar = { idFactura ->
-                            viewModels.pedidos.cargar()
-                            navController.navigate(Screen.Pago.crear(idFactura))
-                        },
-                        onVerPedidos = { irA(Screen.Pedidos) }
-                    )
-                }
-
-                composable(Screen.Pedidos.route) {
-                    PedidosScreen(
-                        pedidosViewModel = viewModels.pedidos,
-                        isLoggedIn = mainUiState.isLoggedIn,
-                        onRequireLogin = requerirLogin,
-                        onEncargo = { navController.navigate(Screen.EncargoDetalle.crear(it)) },
-                        onPagar = { navController.navigate(Screen.Pago.crear(it)) },
-                        onIrProductos = { irA(Screen.Productos) }
-                    )
-                }
-
-                composable(Screen.Cotizaciones.route) {
-                    CotizacionesScreen(
-                        cotizacionesViewModel = viewModels.cotizaciones,
-                        isLoggedIn = mainUiState.isLoggedIn,
-                        snackbarHostState = snackbarHostState,
-                        pestanaInicial = pestanaCotizacion,
-                        onRequireLogin = requerirLogin
-                    )
-                }
-
-                composable(Screen.Feedback.route) {
-                    FeedbackScreen(
-                        feedbackViewModel = viewModels.feedback,
-                        isLoggedIn = mainUiState.isLoggedIn,
-                        snackbarHostState = snackbarHostState,
-                        onRequireLogin = requerirLogin
-                    )
-                }
-
-                composable(Screen.Login.route) {
-                    LoginScreen(
-                        authViewModel = viewModels.auth,
-                        onAutenticado = salirDeAuth,
-                        onVerificar = { navController.navigate(Screen.Verificar.crear(it)) },
-                        onRegistro = { navController.navigate(Screen.Registro.route) }
-                    )
-                }
-
-                composable(Screen.Registro.route) {
-                    RegisterScreen(
-                        authViewModel = viewModels.auth,
-                        onAutenticado = salirDeAuth,
-                        onVerificar = { navController.navigate(Screen.Verificar.crear(it)) },
-                        onLogin = { navController.popBackStack() }
-                    )
-                }
-
-                composable(
-                    route = Screen.Verificar.route,
-                    arguments = listOf(navArgument("correo") { type = NavType.StringType })
-                ) { backStack ->
-                    VerifyEmailScreen(
-                        authViewModel = viewModels.auth,
-                        correo = backStack.arguments?.getString("correo").orEmpty(),
-                        onVerificado = salirDeAuth
-                    )
-                }
-
-                composable(Screen.Perfil.route) {
-                    PerfilScreen(
-                        perfilViewModel = viewModels.perfil,
-                        usuario = mainUiState.usuario,
-                        avatarUrl = mainUiState.avatarUrl,
-                        snackbarHostState = snackbarHostState,
-                        onLogout = {
-                            viewModels.pedidos.limpiar()
-                            navController.navigate(Screen.Home.route) { popUpTo(0) { inclusive = true } }
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Splash.route,
+            modifier = Modifier.padding(padding)
+        ) {
+            composable(Screen.Splash.route) {
+                SplashScreen(
+                    listo = authState !is AuthState.Cargando,
+                    onListo = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
                         }
-                    )
-                }
+                    }
+                )
+            }
 
-                composable(
-                    route = Screen.Pago.route,
-                    arguments = listOf(navArgument("idFactura") { type = NavType.LongType })
-                ) { backStack ->
-                    PagoScreen(
-                        idFactura = backStack.arguments?.getLong("idFactura") ?: 0L,
-                        pedidosViewModel = viewModels.pedidos,
-                        pagoViewModel = viewModels.pago,
-                        onFinalizado = { navController.popBackStack() }
-                    )
-                }
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    viewModel = viewModels.home,
+                    usuario = usuario,
+                    onCatalogo = { irAPrincipal(Screen.Catalogo) },
+                    onProducto = { irA(Screen.Producto.crear(it)) },
+                    onServicio = { irA(Screen.Servicio.crear(it)) },
+                    onCotizar = { servicioId -> requiereSesion("Para solicitar una cotización necesitas una cuenta.", Screen.Cotizar.crear(servicioId)) },
+                    onAgregar = { producto ->
+                        viewModels.catalogo.agregarAlCarrito(producto) { texto -> Toast.makeText(contexto, texto, Toast.LENGTH_SHORT).show() }
+                    },
+                    onCotizaciones = { irAPrincipal(Screen.Actividad) },
+                    onFacturas = { irAPrincipal(Screen.Actividad) },
+                    onSoporte = { irA(Screen.Soporte.route) },
+                    onIniciarSesion = { irA(Screen.Login.crear()) }
+                )
+            }
 
-                composable(
-                    route = Screen.EncargoDetalle.route,
-                    arguments = listOf(navArgument("idEncargo") { type = NavType.LongType })
-                ) { backStack ->
-                    EncargoDetalleScreen(
-                        pedidosViewModel = viewModels.pedidos,
-                        idEncargo = backStack.arguments?.getLong("idEncargo") ?: 0L
+            composable(Screen.Catalogo.route) {
+                CatalogoScreen(
+                    viewModel = viewModels.catalogo,
+                    onProducto = { irA(Screen.Producto.crear(it)) },
+                    onServicio = { irA(Screen.Servicio.crear(it)) },
+                    onCotizar = { servicioId -> requiereSesion("Para solicitar una cotización necesitas una cuenta.", Screen.Cotizar.crear(servicioId)) }
+                )
+            }
+
+            composable(Screen.Carrito.route) {
+                CarritoScreen(
+                    viewModel = viewModels.carrito,
+                    usuario = usuario,
+                    onCatalogo = { irAPrincipal(Screen.Catalogo) },
+                    onRequiereSesion = { gate = AccionConSesion("Para confirmar tu compra necesitas iniciar sesión. Tu carrito se conserva.", Screen.Carrito.route) },
+                    onPedidoCreado = { pedidoId ->
+                        navController.navigate(Screen.Pedido.crear(pedidoId)) { launchSingleTop = true }
+                    }
+                )
+            }
+
+            composable(Screen.Actividad.route) {
+                ActividadScreen(
+                    viewModel = viewModels.actividad,
+                    usuario = usuario,
+                    onIniciarSesion = { irA(Screen.Login.crear(Screen.Actividad.route)) },
+                    onPedido = { irA(Screen.Pedido.crear(it)) },
+                    onCotizacion = { irA(Screen.Cotizacion.crear(it)) },
+                    onFactura = { irA(Screen.Factura.crear(it)) },
+                    onNuevaCotizacion = { irA(Screen.Cotizar.crear()) }
+                )
+            }
+
+            composable(Screen.Cuenta.route) {
+                CuentaScreen(
+                    viewModel = viewModels.cuenta,
+                    usuario = usuario,
+                    negocio = negocio,
+                    googleCargando = authUi.cargandoGoogle,
+                    onLogin = { irA(Screen.Login.crear()) },
+                    onRegistro = { irA(Screen.Registro.crear()) },
+                    onGoogle = { viewModels.auth.continuarConGoogle(contexto) },
+                    onNotificaciones = { irA(Screen.Notificaciones.route) },
+                    onCotizaciones = { irAPrincipal(Screen.Actividad) },
+                    onFacturas = { irAPrincipal(Screen.Actividad) },
+                    onSoporte = { irA(Screen.Soporte.route) }
+                )
+            }
+
+            composable(Screen.Login.route, arguments = argumentoRedirect) { entrada ->
+                val redirect = entrada.redirect()
+                LoginScreen(
+                    viewModel = viewModels.auth,
+                    onBack = { navController.popBackStack() },
+                    onRegistro = { irA(Screen.Registro.crear(redirect)) },
+                    onRecuperar = { irA(Screen.Recuperar.route) },
+                    onExito = { volverAlLogin(redirect) }
+                )
+            }
+
+            composable(Screen.Registro.route, arguments = argumentoRedirect) { entrada ->
+                val redirect = entrada.redirect()
+                RegisterScreen(
+                    viewModel = viewModels.auth,
+                    onBack = { navController.popBackStack() },
+                    onLogin = { irA(Screen.Login.crear(redirect)) },
+                    onExito = { volverAlLogin(redirect) }
+                )
+            }
+
+            composable(Screen.Recuperar.route) {
+                RecuperarScreen(viewModel = viewModels.auth, onBack = { navController.popBackStack() })
+            }
+
+            composable(Screen.Producto.route, arguments = argumentoId) { entrada ->
+                ProductoDetalleScreen(
+                    id = entrada.id(),
+                    viewModel = viewModels.detalleCatalogo,
+                    onBack = { navController.popBackStack() },
+                    onComprarAhora = {
+                        viewModels.detalleCatalogo.agregar(1)
+                        irAPrincipal(Screen.Carrito)
+                    }
+                )
+            }
+
+            composable(Screen.Servicio.route, arguments = argumentoId) { entrada ->
+                ServicioDetalleScreen(
+                    id = entrada.id(),
+                    viewModel = viewModels.detalleCatalogo,
+                    onBack = { navController.popBackStack() },
+                    onCotizar = { servicioId -> requiereSesion("Para solicitar una cotización necesitas una cuenta.", Screen.Cotizar.crear(servicioId)) }
+                )
+            }
+
+            composable(
+                Screen.Cotizar.route,
+                arguments = listOf(navArgument("servicioId") { type = NavType.LongType; defaultValue = -1L })
+            ) { entrada ->
+                CotizarScreen(
+                    servicioId = entrada.arguments?.getLong("servicioId")?.takeIf { it > 0 },
+                    viewModel = viewModels.cotizar,
+                    onBack = { navController.popBackStack() },
+                    onCreada = { cotizacionId ->
+                        navController.navigate(Screen.Cotizacion.crear(cotizacionId)) {
+                            popUpTo(Screen.Cotizar.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.Pedido.route, arguments = argumentoId) { entrada ->
+                PedidoDetalleScreen(
+                    id = entrada.id(),
+                    viewModel = viewModels.pedidoDetalle,
+                    onBack = { navController.popBackStack() },
+                    onCotizacion = { irA(Screen.Cotizacion.crear(it)) }
+                )
+            }
+
+            composable(Screen.Cotizacion.route, arguments = argumentoId) { entrada ->
+                CotizacionDetalleScreen(
+                    id = entrada.id(),
+                    viewModel = viewModels.cotizacionDetalle,
+                    onBack = { navController.popBackStack() },
+                    onPedido = { irA(Screen.Pedido.crear(it)) }
+                )
+            }
+
+            composable(Screen.Factura.route, arguments = argumentoId) { entrada ->
+                FacturaDetalleScreen(
+                    id = entrada.id(),
+                    viewModel = viewModels.facturaDetalle,
+                    onBack = { navController.popBackStack() },
+                    onPedido = { irA(Screen.Pedido.crear(it)) }
+                )
+            }
+
+            composable(Screen.Notificaciones.route) {
+                NotificacionesScreen(
+                    viewModel = viewModels.notificaciones,
+                    onBack = { navController.popBackStack() },
+                    onAbrir = { notificacion -> rutaDeNotificacion(notificacion)?.let { irA(it) } }
+                )
+            }
+
+            composable(Screen.Soporte.route) {
+                if (usuario == null) {
+                    LaunchedEffect(Unit) { gate = AccionConSesion("Para contactar a soporte necesitas iniciar sesión.", Screen.Soporte.route); navController.popBackStack() }
+                } else {
+                    SoporteScreen(
+                        viewModel = viewModels.soporte,
+                        negocio = negocio,
+                        onBack = { navController.popBackStack() },
+                        onNueva = { irA(Screen.SoporteNuevo.route) },
+                        onDetalle = { irA(Screen.SoporteDetalle.crear(it)) }
                     )
                 }
+            }
+
+            composable(Screen.SoporteNuevo.route) {
+                SoporteNuevoScreen(
+                    viewModel = viewModels.soporte,
+                    onBack = { navController.popBackStack() },
+                    onCreada = { soporteId ->
+                        navController.navigate(Screen.SoporteDetalle.crear(soporteId)) {
+                            popUpTo(Screen.SoporteNuevo.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(Screen.SoporteDetalle.route, arguments = argumentoId) { entrada ->
+                SoporteDetalleScreen(id = entrada.id(), viewModel = viewModels.soporte, onBack = { navController.popBackStack() })
             }
         }
     }

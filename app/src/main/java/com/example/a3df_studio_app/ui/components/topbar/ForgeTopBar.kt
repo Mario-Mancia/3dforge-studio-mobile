@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.ViewInAr
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,9 +24,11 @@ import com.example.a3df_studio_app.ui.components.common.UserAvatar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgeTopBar(
+    nombreNegocio: String,
     usuario: AuthUser?,
-    avatarUrl: String?,
+    noLeidas: Int,
     onLogoClick: () -> Unit,
+    onNotificaciones: () -> Unit,
     onAvatarClick: () -> Unit
 ) {
     TopAppBar(
@@ -31,16 +36,25 @@ fun ForgeTopBar(
             IconButton(onClick = onLogoClick) {
                 Icon(
                     imageVector = Icons.Rounded.ViewInAr,
-                    contentDescription = "3DForge Studio",
+                    contentDescription = nombreNegocio,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(30.dp)
                 )
             }
         },
-        title = { Text("3DForge Studio", style = MaterialTheme.typography.titleLarge) },
+        title = { Text(nombreNegocio, style = MaterialTheme.typography.titleLarge) },
         actions = {
+            if (usuario != null) {
+                IconButton(onClick = onNotificaciones) {
+                    BadgedBox(
+                        badge = { if (noLeidas > 0) Badge { Text(if (noLeidas > 99) "99+" else noLeidas.toString()) } }
+                    ) {
+                        Icon(Icons.Rounded.Notifications, contentDescription = "Notificaciones")
+                    }
+                }
+            }
             IconButton(onClick = onAvatarClick, modifier = Modifier.padding(end = 4.dp)) {
-                UserAvatar(avatarUrl = avatarUrl, iniciales = usuario?.iniciales)
+                UserAvatar(avatarUrl = null, iniciales = usuario?.iniciales)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

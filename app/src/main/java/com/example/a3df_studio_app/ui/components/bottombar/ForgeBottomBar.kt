@@ -1,5 +1,7 @@
 package com.example.a3df_studio_app.ui.components.bottombar
 
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -13,6 +15,7 @@ import com.example.a3df_studio_app.ui.navigation.bottomItems
 @Composable
 fun ForgeBottomBar(
     rutaActual: String?,
+    cantidadCarrito: Int,
     onNavigate: (Screen) -> Unit
 ) {
     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
@@ -22,10 +25,14 @@ fun ForgeBottomBar(
                 selected = seleccionado,
                 onClick = { if (!seleccionado) onNavigate(item.screen) },
                 icon = {
-                    Icon(
-                        imageVector = if (seleccionado) item.iconoSeleccionado else item.icono,
-                        contentDescription = item.etiqueta
-                    )
+                    val icono = if (seleccionado) item.iconoSeleccionado else item.icono
+                    if (item.screen == Screen.Carrito && cantidadCarrito > 0) {
+                        BadgedBox(badge = { Badge { Text(if (cantidadCarrito > 99) "99+" else cantidadCarrito.toString()) } }) {
+                            Icon(imageVector = icono, contentDescription = item.etiqueta)
+                        }
+                    } else {
+                        Icon(imageVector = icono, contentDescription = item.etiqueta)
+                    }
                 },
                 label = { Text(item.etiqueta) },
                 colors = NavigationBarItemDefaults.colors(
